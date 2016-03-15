@@ -877,6 +877,8 @@ private:
     uint32_t mSource;
     int32_t mKeyboardType;
 
+    bool mSwapKeys; // swap back with recents button
+
     std::vector<KeyDown> mKeyDowns; // keys that are down
     int32_t mMetaState;
     nsecs_t mDownTime; // time of most recent key down
@@ -907,6 +909,8 @@ private:
     bool isMediaKey(int32_t keyCode);
 
     void processKey(nsecs_t when, bool down, int32_t scanCode, int32_t usageCode);
+
+    int getAdjustedKeyCode(int keyCode);
 
     bool updateMetaStateIfNeeded(int32_t keyCode, bool down);
 
