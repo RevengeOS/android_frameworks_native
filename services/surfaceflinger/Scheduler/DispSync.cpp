@@ -25,6 +25,7 @@
 #include <algorithm>
 
 #include <android-base/stringprintf.h>
+#include <bfqio/bfqio.h>
 #include <cutils/properties.h>
 #include <bfqio/bfqio.h>
 #include <log/log.h>
@@ -490,6 +491,8 @@ void DispSync::init(bool hasSyncFramework, int64_t dispSyncPresentTimeOffset) {
     if (sched_setscheduler(mThread->getTid(), SCHED_FIFO, &param) != 0) {
         ALOGE("Couldn't set SCHED_FIFO for DispSyncThread");
     }
+
+    android_set_rt_ioprio(mThread->getTid(), 1);
 
     beginResync();
 
