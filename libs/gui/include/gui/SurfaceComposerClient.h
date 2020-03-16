@@ -536,6 +536,12 @@ public:
             const std::unordered_set<sp<IBinder>, ISurfaceComposer::SpHash<IBinder>>&
                     excludeHandles,
             float frameScale, sp<GraphicBuffer>* outBuffer);
+    static status_t captureLayers(const sp<IBinder>& display, const ui::Dataspace reqDataSpace,
+                            const ui::PixelFormat reqPixelFormat, Rect sourceCrop,
+                            uint32_t reqWidth, uint32_t reqHeight, int32_t minLayerZ,
+                            int32_t maxLayerZ, bool useIdentityTransform,
+                            uint32_t rotation, bool captureSecureLayers,
+                            sp<GraphicBuffer>* outBuffer, bool& outCapturedSecureLayers);
 };
 
 // ---------------------------------------------------------------------------

@@ -475,6 +475,11 @@ private:
                                          bool* outSupport) const override;
     status_t setDisplayBrightness(const sp<IBinder>& displayToken, float brightness) const override;
     status_t notifyPowerHint(int32_t hintId) override;
+    status_t captureScreenLayers(const sp<IBinder>& displayToken, sp<GraphicBuffer>* outBuffer,
+            bool& outCapturedSecureLayers, const ui::Dataspace reqDataspace,
+            const ui::PixelFormat reqPixelFormat, Rect sourceCrop,
+            uint32_t reqWidth, uint32_t reqHeight, int32_t minLayerZ, int32_t maxLayerZ,
+            bool useIdentityTransform, ISurfaceComposer::Rotation rotation, bool captureSecureLayers) override;
 
     /* ------------------------------------------------------------------------
      * DeathRecipient interface
@@ -664,6 +669,8 @@ private:
                                      bool forSystem, int* outSyncFd, bool& outCapturedSecureLayers);
     void traverseLayersInDisplay(const sp<const DisplayDevice>& display,
                                  const LayerVector::Visitor& visitor);
+    void traverseLayersInRangeInDisplay(const sp<const DisplayDevice>& display, int32_t minLayerZ,
+                                 int32_t maxLayerZ, const LayerVector::Visitor& visitor);
 
     sp<StartPropertySetThread> mStartPropertySetThread;
 

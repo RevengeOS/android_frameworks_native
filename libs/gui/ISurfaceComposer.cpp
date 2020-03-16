@@ -977,6 +977,43 @@ public:
         }
         return NO_ERROR;
     }
+
+    virtual status_t captureScreenLayers(const sp<IBinder>& display, sp<GraphicBuffer>* outBuffer,
+                                   bool& outCapturedSecureLayers, const ui::Dataspace reqDataspace,
+                                   const ui::PixelFormat reqPixelFormat, Rect sourceCrop,
+                                   uint32_t reqWidth, uint32_t reqHeight, int32_t minLayerZ,
+                                   int32_t maxLayerZ, bool useIdentityTransform,
+                                   ISurfaceComposer::Rotation rotation, bool captureSecureLayers) {
+        Parcel data, reply;
+        data.writeInterfaceToken(ISurfaceComposer::getInterfaceDescriptor());
+        data.writeStrongBinder(display);
+        data.writeInt32(static_cast<int32_t>(reqDataspace));
+        data.writeInt32(static_cast<int32_t>(reqPixelFormat));
+        data.write(sourceCrop);
+        data.writeUint32(reqWidth);
+        data.writeUint32(reqHeight);
+        data.writeInt32(minLayerZ);
+        data.writeInt32(maxLayerZ);
+        data.writeInt32(static_cast<int32_t>(useIdentityTransform));
+        data.writeInt32(static_cast<int32_t>(rotation));
+        data.writeInt32(static_cast<int32_t>(captureSecureLayers));
+        status_t result = remote()->transact(BnSurfaceComposer::CAPTURE_SCREEN_LAYERS, data, &reply);
+        if (result != NO_ERROR) {
+            ALOGE("captureScreenLayers failed to transact: %d", result);
+            return result;
+        }
+        result = reply.readInt32();
+        if (result != NO_ERROR) {
+            ALOGE("captureScreenLayers failed to readInt32: %d", result);
+            return result;
+        }
+
+        *outBuffer = new GraphicBuffer();
+        reply.read(**outBuffer);
+        outCapturedSecureLayers = reply.readBool();
+
+        return result;
+    }
 };
 
 // Out-of-line virtual method definition to trigger vtable emission in this
@@ -1593,6 +1630,36 @@ status_t BnSurfaceComposer::onTransact(
         }
         default: {
             return BBinder::onTransact(code, data, reply, flags);
+        }
+        case CAPTURE_SCREEN_LAYERS: {
+            CHECK_INTERFACE(ISurfaceComposer, data, reply);
+            sp<IBinder> display = data.readStrongBinder();
+            ui::Dataspace reqDataspace = static_cast<ui::Dataspace>(data.readInt32());
+            ui::PixelFormat reqPixelFormat = static_cast<ui::PixelFormat>(data.readInt32());
+            sp<GraphicBuffer> outBuffer;
+            Rect sourceCrop(Rect::EMPTY_RECT);
+            data.read(sourceCrop);
+            uint32_t reqWidth = data.readUint32();
+            uint32_t reqHeight = data.readUint32();
+            int32_t minLayerZ = data.readInt32();
+            int32_t maxLayerZ = data.readInt32();
+            bool useIdentityTransform = static_cast<bool>(data.readInt32());
+            int32_t rotation = data.readInt32();
+            bool captureSecureLayers = static_cast<bool>(data.readInt32());
+
+            bool capturedSecureLayers = false;
+            status_t res = captureScreenLayers(display, &outBuffer, capturedSecureLayers, reqDataspace,
+                                         reqPixelFormat, sourceCrop, reqWidth, reqHeight,
+                                         minLayerZ, maxLayerZ, useIdentityTransform,
+                                         static_cast<ISurfaceComposer::Rotation>(rotation),
+                                         captureSecureLayers);
+
+            reply->writeInt32(res);
+            if (res == NO_ERROR) {
+                reply->write(*outBuffer);
+                reply->writeBool(capturedSecureLayers);
+            }
+            return NO_ERROR;
         }
     }
 }

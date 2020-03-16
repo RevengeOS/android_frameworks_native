@@ -438,6 +438,37 @@ public:
      * Returns NO_ERROR upon success.
      */
     virtual status_t notifyPowerHint(int32_t hintId) = 0;
+
+    /**
+     * Capture the specified screen layers. This requires READ_FRAME_BUFFER
+     * permission.  This function will fail if there is a secure window on
+     * screen.
+     *
+     * This function can capture a subregion (the source crop) of the screen.
+     * The subregion can be optionally rotated.  It will also be scaled to
+     * match the size of the output buffer.
+     *
+     * reqDataspace and reqPixelFormat specify the data space and pixel format
+     * of the buffer. The caller should pick the data space and pixel format
+     * that it can consume.
+     *
+     * sourceCrop is the crop on the logical display.
+     *
+     * reqWidth and reqHeight specifies the size of the buffer.  When either
+     * of them is 0, they are set to the size of the logical display viewport.
+     *
+     * When useIdentityTransform is true, layer transformations are disabled.
+     *
+     * rotation specifies the rotation of the source crop (and the pixels in
+     * it) around its center.
+     */
+    virtual status_t captureScreenLayers(const sp<IBinder>& display, sp<GraphicBuffer>* outBuffer,
+                                   bool& outCapturedSecureLayers, const ui::Dataspace reqDataspace,
+                                   const ui::PixelFormat reqPixelFormat, Rect sourceCrop,
+                                   uint32_t reqWidth, uint32_t reqHeight, int32_t minLayerZ,
+                                   int32_t maxLayerZ, bool useIdentityTransform,
+                                   Rotation rotation = eRotateNone,
+                                   bool captureSecureLayers = false) = 0;
 };
 
 // ----------------------------------------------------------------------------
@@ -491,6 +522,7 @@ public:
         SET_DISPLAY_BRIGHTNESS,
         CAPTURE_SCREEN_BY_ID,
         NOTIFY_POWER_HINT,
+        CAPTURE_SCREEN_LAYERS,
         // Always append new enum to the end.
     };
 

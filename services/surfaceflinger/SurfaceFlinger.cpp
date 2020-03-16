@@ -5237,6 +5237,7 @@ status_t SurfaceFlinger::CheckTransactCodeCredentials(uint32_t code) {
         }
         case CAPTURE_LAYERS:
         case CAPTURE_SCREEN:
+        case CAPTURE_SCREEN_LAYERS:
         case ADD_REGION_SAMPLING_LISTENER:
         case REMOVE_REGION_SAMPLING_LISTENER: {
             // codes that require permission check
@@ -6285,6 +6286,70 @@ sp<Layer> SurfaceFlinger::fromHandle(const sp<IBinder>& handle) {
 
 void SurfaceFlinger::bufferErased(const client_cache_t& clientCacheId) {
     getRenderEngine().unbindExternalTextureBuffer(clientCacheId.id);
+}
+
+status_t SurfaceFlinger::captureScreenLayers(const sp<IBinder>& displayToken,
+                                       sp<GraphicBuffer>* outBuffer, bool& outCapturedSecureLayers,
+                                       const Dataspace reqDataspace,
+                                       const ui::PixelFormat reqPixelFormat, Rect sourceCrop,
+                                       uint32_t reqWidth, uint32_t reqHeight, int32_t minLayerZ,
+                                       int32_t maxLayerZ, bool useIdentityTransform,
+                                       ISurfaceComposer::Rotation rotation,
+                                       bool captureSecureLayers) {
+    ATRACE_CALL();
+
+    if (!displayToken) return BAD_VALUE;
+
+    auto renderAreaRotation = fromSurfaceComposerRotation(rotation);
+
+    sp<DisplayDevice> display;
+    {
+        Mutex::Autolock _l(mStateLock);
+
+        display = getDisplayDeviceLocked(displayToken);
+        if (!display) return BAD_VALUE;
+
+        // set the requested width/height to the logical display viewport size
+        // by default
+        if (reqWidth == 0 || reqHeight == 0) {
+            reqWidth = uint32_t(display->getViewport().width());
+            reqHeight = uint32_t(display->getViewport().height());
+        }
+    }
+
+    DisplayRenderArea renderArea(display, sourceCrop, reqWidth, reqHeight, reqDataspace,
+                                 renderAreaRotation, captureSecureLayers);
+
+    auto traverseLayers = std::bind(&SurfaceFlinger::traverseLayersInRangeInDisplay, this, display,
+                                    minLayerZ, maxLayerZ, std::placeholders::_1);
+    return captureScreenCommon(renderArea, traverseLayers, outBuffer, reqPixelFormat,
+                               useIdentityTransform, outCapturedSecureLayers);
+}
+
+void SurfaceFlinger::traverseLayersInRangeInDisplay(const sp<const DisplayDevice>& display,
+                                             int32_t minLayerZ, int32_t maxLayerZ,
+                                             const LayerVector::Visitor& visitor) {
+    // We loop through the first level of layers without traversing,
+    // as we need to interpret min/max layer Z in the top level Z space.
+    for (const auto& layer : mDrawingState.layersSortedByZ) {
+        if (!layer->belongsToDisplay(display->getLayerStack(), false)) {
+            continue;
+        }
+        const Layer::State& state(layer->getDrawingState());
+        // relative layers are traversed in Layer::traverseInZOrder
+        if (state.zOrderRelativeOf != nullptr || state.z < minLayerZ || state.z > maxLayerZ) {
+            continue;
+        }
+        layer->traverseInZOrder(LayerVector::StateSet::Drawing, [&](Layer* layer) {
+            if (!layer->belongsToDisplay(display->getLayerStack(), false)) {
+                return;
+            }
+            if (!layer->isVisible()) {
+                return;
+            }
+            visitor(layer);
+        });
+    }
 }
 
 } // namespace android
