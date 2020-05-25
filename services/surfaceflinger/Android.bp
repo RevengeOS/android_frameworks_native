@@ -70,8 +70,16 @@ cc_defaults {
     header_libs: [
         "android.hardware.graphics.composer@2.1-command-buffer",
         "android.hardware.graphics.composer@2.2-command-buffer",
-        "android.hardware.graphics.composer@2.3-command-buffer"
+        "android.hardware.graphics.composer@2.3-command-buffer",
     ],
+    product_variables: {
+        revengeos: {
+            qcom_um_soong_namespace: {
+                cflags: ["-DQCOM_UM_FAMILY"],
+                header_libs: ["//%s:display_intf_headers"],
+            },
+        },
+    },
     export_static_lib_headers: [
         "libcompositionengine",
         "librenderengine",
