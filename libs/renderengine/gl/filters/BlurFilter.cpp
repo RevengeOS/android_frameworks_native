@@ -220,8 +220,8 @@ string BlurFilter::getVertexShader() const {
         precision mediump float;
 
         in vec2 aPosition;
-        in highp vec2 aUV;
-        out highp vec2 vUV;
+        in vec2 aUV;
+        out vec2 vUV;
 
         void main() {
             vUV = aUV;
@@ -237,7 +237,7 @@ string BlurFilter::getFragmentShader() const {
         uniform sampler2D uTexture;
         uniform vec2 uOffset;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         out vec4 fragColor;
 
         void main() {
@@ -256,7 +256,7 @@ string BlurFilter::getMixFragShader() const {
     string shader = R"SHADER(#version 310 es
         precision mediump float;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         out vec4 fragColor;
 
         uniform sampler2D uCompositionTexture;
