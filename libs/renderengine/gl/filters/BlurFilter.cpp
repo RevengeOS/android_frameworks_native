@@ -30,6 +30,9 @@ namespace android {
 namespace renderengine {
 namespace gl {
 
+// This needs to be located in .rodata to get a pointer for the OpenGL API.
+static const GLenum kInvalidateAttachment = GL_COLOR_ATTACHMENT0;
+
 BlurFilter::BlurFilter(GLESRenderEngine& engine)
       : mEngine(engine),
         mCompositionFbo(engine),
@@ -115,6 +118,7 @@ status_t BlurFilter::setAsDrawTarget(const DisplaySettings& display, uint32_t ra
     }
 
     mCompositionFbo.bind();
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &kInvalidateAttachment);
     glViewport(0, 0, mCompositionFbo.getBufferWidth(), mCompositionFbo.getBufferHeight());
     return NO_ERROR;
 }
@@ -154,6 +158,7 @@ status_t BlurFilter::prepare() {
     GLFramebuffer* draw = &mPingFbo;
     read->bindAsReadBuffer();
     draw->bindAsDrawBuffer();
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &kInvalidateAttachment);
     glBlitFramebuffer(0, 0,
                       read->getBufferWidth(), read->getBufferHeight(),
                       0, 0,
@@ -164,6 +169,7 @@ status_t BlurFilter::prepare() {
 
     // And now we'll ping pong between our textures, to accumulate the result of various offsets.
     mBlurProgram.useProgram();
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &kInvalidateAttachment);
     glViewport(0, 0, draw->getBufferWidth(), draw->getBufferHeight());
     for (auto i = 1; i < passes; i++) {
         ATRACE_NAME("BlurFilter::renderPass");
